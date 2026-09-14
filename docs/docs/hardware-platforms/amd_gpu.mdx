@@ -113,6 +113,35 @@ The steps below show how to build and use an image.
        --random-output 128
    ```
 
+### Strix Halo (`gfx1151`)
+
+Instinct tags (`lmsysorg/sglang:v*-rocm*-mi30x|mi35x`) and `GPU_ARCH=gfx942|gfx950|gfx1250` do **not** include Strix Halo. Use the TheRock-based image and build **on the APU**:
+
+```bash Command
+docker build -f docker/rocm-gfx1151.Dockerfile -t lmsysorg/sglang:dev-rocm-therock-gfx1151 .
+```
+
+Host: kernel ROCm KMD must expose `/dev/kfd` and `/dev/dri`; the user should be in `video` and `render`. If large models fail to allocate, raise GTT (`amdgpu.gttsize` / `ttm.pages_limit`). Confirm `gfx1151` **inside** the container with `rocminfo`.
+
+Diffusion (default compose). Do **not** pass SRT `--attention-backend triton` into `sglang generate` — DiT uses `torch_sdpa` (FA3 is CUDA-only; AITER FMHA is wave64):
+
+```bash Command
+docker compose -f docker/compose.rocm-gfx1151.yaml up
+# or
+docker/drun-rocm.sh lmsysorg/sglang:dev-rocm-therock-gfx1151 \
+  sglang generate --model-path Tongyi-MAI/Z-Image-Turbo \
+    --attention-backend torch_sdpa --num-gpus 1 \
+    --prompt "A logo With Bold Large text: SGL Diffusion" --save-output
+```
+
+LLM on the same image:
+
+```bash Command
+docker compose -f docker/compose.rocm-gfx1151.yaml --profile llm up
+```
+
+Mount `~/.cache/strix-halo-sglang-tunableop` so TunableOp GEMM tunings survive restarts. `SGLANG_USE_AITER=0`. MXFP4 / AITER fused MLA / video DiTs are not part of this bring-up.
+
 With your AMD system properly configured and SGLang installed, you can now fully leverage AMD hardware to power SGLang’s machine learning capabilities.
 
 ## Quantization on AMD GPUs

@@ -1073,6 +1073,18 @@ def is_gfx1250_supported():
         return False
 
 
+@lru_cache(maxsize=1)
+def is_gfx115_supported():
+    """RDNA 3.5: Strix Point (gfx1150) or Strix Halo (gfx1151).
+
+    False on every non-HIP build. Does not match gfx1250 (RDNA4 datacenter).
+    """
+    if torch.version.hip:
+        gcn_arch = torch.cuda.get_device_properties(0).gcnArchName
+        return "gfx115" in gcn_arch
+    return False
+
+
 def get_hip_version():
     if torch.version.hip:
         return tuple(map(int, torch.version.hip.split("-")[0].split(".")))

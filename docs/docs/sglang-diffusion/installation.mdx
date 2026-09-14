@@ -67,6 +67,28 @@ docker run --device=/dev/kfd --device=/dev/dri --ipc=host \
   sglang generate --model-path black-forest-labs/FLUX.1-dev --prompt "A logo With Bold Large text: SGL Diffusion" --save-output
 ```
 
+### Strix Halo (`gfx1151`)
+
+The Instinct `mi30x` / `mi35x` tags do not include `gfx1151`. Build the TheRock image on the APU (`docker/rocm-gfx1151.Dockerfile`) and launch with **`torch_sdpa`**, not SRT `triton` or AITER:
+
+```bash Command
+docker build -f docker/rocm-gfx1151.Dockerfile -t lmsysorg/sglang:dev-rocm-therock-gfx1151 .
+docker compose -f docker/compose.rocm-gfx1151.yaml up
+```
+
+Or one-shot:
+
+```bash Command
+docker/drun-rocm.sh \
+  -e HF_TOKEN=<secret> \
+  lmsysorg/sglang:dev-rocm-therock-gfx1151 \
+  sglang generate --model-path Tongyi-MAI/Z-Image-Turbo \
+    --attention-backend torch_sdpa --num-gpus 1 \
+    --prompt "A logo With Bold Large text: SGL Diffusion" --save-output
+```
+
+Keep `--num-gpus 1`. Leave `SGLANG_USE_ROCM_VAE` unset (AITER GroupNorm is CDNA). Certify the image with a small image DiT first, then try other checkpoints on the APU. See [AMD GPUs](../hardware-platforms/amd_gpu) for host KMD, groups, and GTT.
+
 For detailed ROCm system configuration and installation from source, see [AMD GPUs](../hardware-platforms/amd_gpu).
 
 ## Platform-Specific: MUSA (Moore Threads GPUs)

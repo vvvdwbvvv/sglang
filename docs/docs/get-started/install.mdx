@@ -127,8 +127,8 @@ Please check out [OME](https://github.com/sgl-project/ome), a Kubernetes operato
 > This method is recommended if you plan to serve it as a service.
 > A better approach is to use the [k8s-sglang-service.yaml](https://github.com/sgl-project/sglang/blob/main/docker/k8s-sglang-service.yaml).
 
-1. Copy the [compose.yml](https://github.com/sgl-project/sglang/blob/main/docker/compose.yaml) to your local machine
-2. Execute the command `docker compose up -d` in your terminal.
+1. Copy [compose.yaml](https://github.com/sgl-project/sglang/blob/main/docker/compose.yaml) (NVIDIA) or [compose.rocm.yaml](https://github.com/sgl-project/sglang/blob/main/docker/compose.rocm.yaml) (AMD ROCm) to your local machine. `lmsysorg/sglang:latest` is CUDA; ROCm tags are documented on [AMD GPUs](../hardware-platforms/amd_gpu).
+2. Execute the command `docker compose up -d` (ROCm: `docker compose -f compose.rocm.yaml up -d`) in your terminal.
 
 </Accordion>
 

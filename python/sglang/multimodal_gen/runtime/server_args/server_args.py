@@ -3782,11 +3782,18 @@ class ServerArgs(DisaggServerArgsMixin):
     def _set_default_attention_backend(self) -> None:
         """Configure ROCm defaults when users do not specify an attention backend."""
         if current_platform.is_rocm():
-            default_backend = AttentionBackendEnum.AITER.name.lower()
+            from sglang.srt.utils.common import is_gfx115_supported
+
+            # Instinct (CDNA) matches SRT and uses AITER. gfx1151 is wave32;
+            # AITER FMHA is wave64/CK, and SRT's "triton" backend is not a DiT
+            # backend — use PyTorch SDPA (FA3 is CUDA-only).
+            if is_gfx115_supported():
+                default_backend = AttentionBackendEnum.TORCH_SDPA.name.lower()
+            else:
+                default_backend = AttentionBackendEnum.AITER.name.lower()
             self.attention_backend = default_backend
             logger.info(
-                "Attention backend not specified. Using '%s' by default on ROCm "
-                "to match SGLang SRT defaults.",
+                "Attention backend not specified. Using '%s' by default on ROCm.",
                 default_backend,
             )
 

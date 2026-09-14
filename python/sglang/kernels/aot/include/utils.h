@@ -342,7 +342,13 @@ inline bool getEnvEnablePDL() {
 #ifndef USE_ROCM
 #define WARP_SIZE 32
 #else
-#if defined(__GFX9__) || !defined(__HIP_DEVICE_COMPILE__)
+// Host and device must agree: __HIP_DEVICE_COMPILE__ is unset on the host
+// pass, so a gfx9-only host default of 64 mismatches wave32 device
+// __launch_bounds__ (gfx1151 / gfx1250). SGL_ROCM_WARP_SIZE is set by
+// setup_rocm.py from AMDGPU_TARGET (64 CDNA, 32 otherwise).
+#ifdef SGL_ROCM_WARP_SIZE
+#define WARP_SIZE SGL_ROCM_WARP_SIZE
+#elif defined(__GFX9__) || !defined(__HIP_DEVICE_COMPILE__)
 #define WARP_SIZE 64
 #else
 #define WARP_SIZE 32

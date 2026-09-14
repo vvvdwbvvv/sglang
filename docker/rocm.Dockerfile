@@ -8,6 +8,8 @@
 #   docker build --build-arg SGL_BRANCH=v0.5.17 --build-arg GPU_ARCH=gfx942-rocm1000 -t v0.5.17-rocm1000-mi30x -f rocm.Dockerfile .
 #   docker build --build-arg SGL_BRANCH=v0.5.17 --build-arg GPU_ARCH=gfx950-rocm1000 -t v0.5.17-rocm1000-mi35x -f rocm.Dockerfile .
 #   docker build --build-arg SGL_BRANCH=v0.5.17 --build-arg GPU_ARCH=gfx1250-rocm1000 -t v0.5.17-rocm1000-mi45x -f rocm.Dockerfile .
+#   gfx1151 (Strix Halo) is not an Instinct GPU_ARCH. Use docker/rocm-gfx1151.Dockerfile
+#   (TheRock base) and build on the APU; see docs/docs/hardware-platforms/amd_gpu.mdx.
 #
 # Flavor notes:
 #   GPU_ARCH=*-rocm724 is built on a Python 3.12 base and upgrades the stack to

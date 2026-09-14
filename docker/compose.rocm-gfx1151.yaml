@@ -1,0 +1,92 @@
+# Strix Halo (gfx1151) compose. TheRock image, not lmsysorg/sglang:latest (CUDA)
+# and not the Instinct mi30x/mi35x tags.
+#
+# Diffusion (default):
+#   docker compose -f docker/compose.rocm-gfx1151.yaml up
+# LLM:
+#   docker compose -f docker/compose.rocm-gfx1151.yaml --profile llm up
+#
+# Override image with SGLANG_IMAGE. Build first:
+#   docker build -f docker/rocm-gfx1151.Dockerfile -t lmsysorg/sglang:dev-rocm-therock-gfx1151 .
+
+x-rocm-common: &rocm-common
+  image: ${SGLANG_IMAGE:-lmsysorg/sglang:dev-rocm-therock-gfx1151}
+  devices:
+    - /dev/kfd
+    - /dev/dri
+  group_add:
+    - video
+  ipc: host
+  cap_add:
+    - SYS_PTRACE
+  security_opt:
+    - seccomp:unconfined
+  volumes:
+    - ${HOME}/.cache/huggingface:/root/.cache/huggingface
+    - ${HOME}/.cache/strix-halo-sglang-tunableop:/root/.tunableop
+  environment:
+    - HF_TOKEN=${HF_TOKEN:-}
+    - SGLANG_USE_AITER=0
+    - SGLANG_ROCM_FUSED_DECODE_MLA=0
+    - SGLANG_DIFFUSION_TARGET_DEVICE=rocm
+    - SGLANG_USE_ROCM_VAE=0
+    - PYTORCH_TUNABLEOP_ENABLED=1
+    - PYTORCH_TUNABLEOP_FILENAME=/root/.tunableop/tunableop_results.csv
+  shm_size: 16gb
+
+services:
+  sglang-diffusion:
+    <<: *rocm-common
+    container_name: sglang-diffusion-gfx1151
+    ports:
+      - "30010:30010"
+    entrypoint: ["sglang"]
+    command:
+      - serve
+      - --model-path
+      - ${DIFFUSION_MODEL_PATH:-Tongyi-MAI/Z-Image-Turbo}
+      - --host
+      - "0.0.0.0"
+      - --port
+      - "30010"
+      - --attention-backend
+      - torch_sdpa
+      - --num-gpus
+      - "1"
+      - --performance-mode
+      - manual
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:30010/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 10
+      start_period: 300s
+
+  sglang-llm:
+    <<: *rocm-common
+    profiles: ["llm"]
+    container_name: sglang-llm-gfx1151
+    ports:
+      - "30000:30000"
+    entrypoint: ["python3"]
+    command:
+      - -m
+      - sglang.launch_server
+      - --model-path
+      - ${MODEL_PATH:-Qwen/Qwen3.5-4B}
+      - --host
+      - "0.0.0.0"
+      - --port
+      - "30000"
+      - --attention-backend
+      - triton
+      - --mem-fraction-static
+      - "0.5"
+      - --context-length
+      - "8192"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:30000/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 10
+      start_period: 180s

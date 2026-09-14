@@ -17,6 +17,7 @@ from utils import (
 FILES_TO_UPDATE = [
     Path("docs/docs/get-started/install.mdx"),
     Path("docs/docs/hardware-platforms/amd_gpu.mdx"),
+    Path("docker/compose.rocm.yaml"),
 ]
 
 # Matches `git clone -b v<version> https://github.com/sgl-project/sglang.git`,

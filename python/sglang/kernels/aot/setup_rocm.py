@@ -75,22 +75,38 @@ if torch.cuda.is_available():
 else:
     print(f"Warning: torch.cuda not available. Using default target: {amdgpu_target}")
 
-if amdgpu_target not in ["gfx942", "gfx950", "gfx1250"]:
+supported_targets = ["gfx942", "gfx950", "gfx1250", "gfx1151"]
+if amdgpu_target not in supported_targets:
     print(
-        f"Warning: Unsupported GPU architecture detected '{amdgpu_target}'. Expected 'gfx942', 'gfx950', or 'gfx1250'."
+        f"Warning: Unsupported GPU architecture detected '{amdgpu_target}'. "
+        f"Expected {', '.join(repr(t) for t in supported_targets)}."
     )
     sys.exit(1)
 
+# gfx9 = CDNA wave64. gfx1151 (RDNA 3.5) and gfx1250 (RDNA 4) are wave32.
+is_cdna = amdgpu_target.startswith("gfx9")
+is_rdna_single_gpu = amdgpu_target == "gfx1151"
+warp_size = 64 if is_cdna else 32
+
 fp8_macro = (
     "-DHIP_FP8_TYPE_FNUZ" if amdgpu_target == "gfx942" else "-DHIP_FP8_TYPE_E4M3"
-)  # gfx950 and gfx1250 use E4M3
+)  # gfx950 / gfx1250 / gfx1151 use E4M3
 
 # Dynamic shared-memory budget for the TopK kernels.
 # - gfx942 (MI300/MI325): LDS is typically 64KB per workgroup -> keep dynamic smem <= ~48KB
 #   (leaves room for static shared allocations in the kernel).
 # - gfx95x (MI350) and gfx1250: LDS is larger. Large dynamic budget wastes LDS
 #   and pins occupancy to 1 block/CU. Keep it small (40KB) for better occupancy.
-topk_dynamic_smem_bytes = 48 * 1024 if amdgpu_target == "gfx942" else 40 * 1024
+# - gfx1151 (RDNA 3.5): workgroup LDS is 64KB; stay at 48KB like gfx942, not a
+#   gfx950 leftover that would exceed the hardware limit.
+if amdgpu_target in ("gfx942", "gfx1151"):
+    topk_dynamic_smem_bytes = 48 * 1024
+else:
+    topk_dynamic_smem_bytes = 40 * 1024
+
+# gfx1151 is a single-GPU APU; the HIP allreduce kernels are unvalidated there.
+if is_rdna_single_gpu:
+    sources = [s for s in sources if not s.startswith("csrc/allreduce/")]
 
 hipcc_flags = [
     "-DNDEBUG",
@@ -104,7 +120,12 @@ hipcc_flags = [
     "-DENABLE_FP8",
     fp8_macro,
     f"-DSGL_TOPK_DYNAMIC_SMEM_BYTES={topk_dynamic_smem_bytes}",
+    f"-DSGL_ROCM_WARP_SIZE={warp_size}",
 ]
+if is_rdna_single_gpu:
+    hipcc_flags.append("-DSGL_IS_RDNA")
+    cxx_flags = cxx_flags + ["-DSGL_IS_RDNA"]
+cxx_flags = cxx_flags + [f"-DSGL_ROCM_WARP_SIZE={warp_size}"]
 
 ext_modules = [
     CUDAExtension(

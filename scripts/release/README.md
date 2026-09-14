@@ -98,7 +98,8 @@ python scripts/release/bump_docs_install_version.py 0.5.13
 
 **Files updated:**
 - `docs/docs/get-started/install.mdx` (Method 2: From source; Method 3: pinned Docker image)
-- `docs/docs/hardware-platforms/amd_gpu.mdx` (Install from Source)
+- `docs/docs/hardware-platforms/amd_gpu.mdx` (Install from Source; ROCm Docker tags)
+- `docker/compose.rocm.yaml` (default `lmsysorg/sglang:v<version>-rocm*` image)
 
 ### `bump_kernel_version.py`
 Updates the `sglang-kernel` release version across all relevant files following the pattern from [PR #10732](https://github.com/sgl-project/sglang/pull/10732).

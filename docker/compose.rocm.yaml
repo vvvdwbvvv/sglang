@@ -1,0 +1,39 @@
+# Official SGLang ROCm compose. Pick the tag for the host gfx:
+#   gfx942 (MI300X)  lmsysorg/sglang:v0.5.18-rocm720-mi30x
+#   gfx950 (MI350)   lmsysorg/sglang:v0.5.18-rocm720-mi35x
+# Override with SGLANG_IMAGE. Do not use lmsysorg/sglang:latest (that is CUDA).
+services:
+  sglang:
+    image: ${SGLANG_IMAGE:-lmsysorg/sglang:v0.5.18-rocm720-mi30x}
+    container_name: sglang-rocm
+    volumes:
+      - ${HOME}/.cache/huggingface:/root/.cache/huggingface
+    restart: always
+    network_mode: host
+    privileged: true
+    environment:
+      - HF_TOKEN=${HF_TOKEN:-}
+    entrypoint: python3 -m sglang.launch_server
+    command: --model-path ${MODEL_PATH:-meta-llama/Llama-3.1-8B-Instruct}
+      --host 0.0.0.0
+      --port 30000
+    ulimits:
+      memlock: -1
+      stack: 67108864
+    ipc: host
+    shm_size: 32gb
+    devices:
+      - /dev/kfd
+      - /dev/dri
+    group_add:
+      - video
+    cap_add:
+      - SYS_PTRACE
+    security_opt:
+      - seccomp:unconfined
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:30000/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 10
+      start_period: 120s

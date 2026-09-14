@@ -112,6 +112,14 @@ class RocmPlatform(Platform):
             pass
 
         elif selected_backend == AttentionBackendEnum.AITER:
+            from sglang.srt.utils.common import is_gfx115_supported
+
+            if is_gfx115_supported():
+                logger.warning(
+                    "AITER attention is not supported on gfx1151 (RDNA 3.5, wave32). "
+                    "Using Torch SDPA."
+                )
+                return "sglang.multimodal_gen.runtime.layers.attention.backends.sdpa.SDPABackend"
             if dtype not in (torch.float16, torch.bfloat16):
                 logger.warning(
                     "AITer backend works best with fp16/bf16 inputs but got dtype=%s. "
@@ -122,6 +130,13 @@ class RocmPlatform(Platform):
             return "sglang.multimodal_gen.runtime.layers.attention.backends.aiter.AITerBackend"
 
         elif selected_backend == AttentionBackendEnum.AITER_SAGE:
+            from sglang.srt.utils.common import is_gfx115_supported
+
+            if is_gfx115_supported():
+                logger.warning(
+                    "AITER Sage attention is not supported on gfx1151. Using Torch SDPA."
+                )
+                return "sglang.multimodal_gen.runtime.layers.attention.backends.sdpa.SDPABackend"
             if dtype in (torch.float16, torch.bfloat16):
                 logger.info("Using AITER Sage backend on ROCm.")
                 return "sglang.multimodal_gen.runtime.layers.attention.backends.aiter_sage.AITERSageBackend"

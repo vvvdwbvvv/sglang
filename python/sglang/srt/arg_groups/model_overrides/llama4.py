@@ -29,7 +29,11 @@ def _llama4_overrides(server_args: Any, hf_config: Any) -> dict:
         elif get_platform().is_sm90:
             backend, platform = "fa3", "sm90"
         elif get_platform().is_hip:
-            backend, platform = "aiter", "hip"
+            from sglang.srt.utils.common import is_gfx115_supported
+
+            backend, platform = (
+                ("triton", "gfx115") if is_gfx115_supported() else ("aiter", "hip")
+            )
         elif cfg.device == "xpu":
             backend, platform = "intel_xpu", "xpu"
         else:

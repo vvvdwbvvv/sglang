@@ -39,7 +39,11 @@ def _gpt_oss_overrides(server_args: Any, hf_config: Any) -> dict:
         elif get_platform().is_xpu:
             overrides["attention_backend"] = "intel_xpu"
         elif get_platform().is_hip:
-            overrides["attention_backend"] = "aiter"
+            from sglang.srt.utils.common import is_gfx115_supported
+
+            overrides["attention_backend"] = (
+                "triton" if is_gfx115_supported() else "aiter"
+            )
         elif not (is_mps() and use_mlx()):
             # Exempt MLX only -- it owns attention in its own runner.  macOS
             # without MLX still falls through to triton and fails fast below,
